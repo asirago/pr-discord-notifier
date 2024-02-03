@@ -21,9 +21,9 @@ func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]any{
 		"status":       "available",
-		"port":         app.cfg.port,
+		"port":         app.cfg.Port,
 		"version":      "1.0.0",
-		"environment:": app.cfg.environment,
+		"environment:": app.cfg.Environment,
 	}
 
 	json, err := json.Marshal(data)
