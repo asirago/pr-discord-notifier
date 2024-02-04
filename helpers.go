@@ -19,8 +19,8 @@ func addIssueURLToPullRequestBody(body, url string) string {
 
 		transformedText = strings.Replace(
 			transformedText,
-			fmt.Sprintf("#%s", issue),
-			fmt.Sprintf("[#%s](%s/issues/%s)", issue, url, issue),
+			fmt.Sprintf(" #%s", issue),
+			fmt.Sprintf(" [#%s](%s/issues/%s)", issue, url, issue),
 			-1,
 		)
 	}

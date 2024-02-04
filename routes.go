@@ -41,6 +41,14 @@ type Payload struct {
 		ClosedAt *time.Time `json:"closed_at"`
 		MergedAt *time.Time `json:"merged_at"`
 	} `json:"pull_request"`
+	Changes struct {
+		Title struct {
+			From string `json:"from"`
+		} `json:"title"`
+		Body struct {
+			From string `json:"from"`
+		} `json:"body"`
+	} `json:"changes"`
 	Repo struct {
 		HTMLURL string `json:"html_url"`
 	} `json:"repository"`
@@ -75,7 +83,15 @@ func (app *application) githubWebhookReceiver(w http.ResponseWriter, r *http.Req
 		}
 		return
 	case "edited":
-		fmt.Println("pull request was changed") // Implement soon
+		err = app.sendEditedPullRequestMessage(payload)
+		if err != nil {
+			app.log.Error().Err(err).Msg("could not send pull request message")
+			http.Error(
+				w,
+				"Error sending opened pull request message",
+				http.StatusInternalServerError,
+			)
+		}
 		return
 	case "closed":
 		fmt.Println("pull request was closed") // Implement soon
