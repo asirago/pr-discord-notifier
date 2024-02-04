@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -25,13 +27,19 @@ type Payload struct {
 	PullRequest struct {
 		URL     string `json:"url"`
 		ID      int64  `json:"id"`
-		HTMLURL string `json:"htmlurl"`
+		HTMLURL string `json:"html_url"`
 		State   string `json:"state"`
+		Title   string `json:"title"`
 		User    struct {
-			Login string `json:"login"`
-			Title string `json:"title"`
+			Login     string `json:"login"`
+			ID        int64  `json:"id"`
+			HTMLURL   string `json:"htm_url"`
+			Title     string `json:"title"`
+			AvatarURL string `json:"avatar_url"`
 		} `json:"user"`
-		Body string `json:"body"`
+		Body     string     `json:"body"`
+		ClosedAt *time.Time `json:"closed_at"`
+		MergedAt *time.Time `json:"merged_at"`
 	} `json:"pull_request"`
 }
 
@@ -48,6 +56,30 @@ func (app *application) githubWebhookReceiver(w http.ResponseWriter, r *http.Req
 	err = json.Unmarshal(body, &payload)
 	if err != nil {
 		http.Error(w, "Error unmarshalling json", http.StatusInternalServerError)
+	}
+
+	switch payload.Action {
+
+	case "opened":
+		err = app.sendOpenedPullRequestMessage(payload)
+		if err != nil {
+			app.log.Error().Err(err).Msg("could not send pull request message")
+			http.Error(
+				w,
+				"Error sending opened pull request message",
+				http.StatusInternalServerError,
+			)
+		}
+		return
+	case "edited":
+		fmt.Println("pull request was changed") // Implement soon
+		return
+	case "closed":
+		fmt.Println("pull request was closed") // Implement soon
+		return
+	default:
+		fmt.Println("any other pull request event")
+
 	}
 
 	w.WriteHeader(http.StatusOK)
