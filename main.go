@@ -9,7 +9,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
-	flag "github.com/spf13/pflag"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -34,19 +34,19 @@ func main() {
 		log: zerolog.New(os.Stdout).With().Timestamp().Logger(),
 	}
 
-	flag.IntVar(&app.cfg.Port, "port", 6666, "HTTP port")
-	flag.StringVar(&app.cfg.Token, "token", "", "Discord bot token")
-	flag.StringVar(&app.cfg.ChannelID, "channelID", "", "Discord channel id")
-	flag.StringVar(&app.cfg.Environment, "env", "dev", "dev | prod")
+	pflag.IntVar(&app.cfg.Port, "port", 6666, "HTTP port")
+	pflag.StringVar(&app.cfg.Token, "token", "", "Discord bot token")
+	pflag.StringVar(&app.cfg.ChannelID, "channelID", "", "Discord channel id")
+	pflag.StringVar(&app.cfg.Environment, "env", "dev", "dev | prod")
 
-	configFileName := flag.String("config", "", "config file name")
+	configFileName := pflag.String("config", "", "config file name")
 
-	flag.Parse()
+	pflag.Parse()
 
-	viper.BindPFlag("port", flag.Lookup("port"))
-	viper.BindPFlag("token", flag.Lookup("token"))
-	viper.BindPFlag("channelID", flag.Lookup("channelID"))
-	viper.BindPFlag("environment", flag.Lookup("env"))
+	viper.BindPFlag("port", pflag.Lookup("port"))
+	viper.BindPFlag("token", pflag.Lookup("token"))
+	viper.BindPFlag("channelID", pflag.Lookup("channelID"))
+	viper.BindPFlag("environment", pflag.Lookup("env"))
 
 	if *configFileName != "" {
 		err := app.setupConfigFile(*configFileName)
