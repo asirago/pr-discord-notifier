@@ -41,6 +41,9 @@ type Payload struct {
 		ClosedAt *time.Time `json:"closed_at"`
 		MergedAt *time.Time `json:"merged_at"`
 	} `json:"pull_request"`
+	Repo struct {
+		HTMLURL string `json:"html_url"`
+	} `json:"repository"`
 }
 
 func (app *application) githubWebhookReceiver(w http.ResponseWriter, r *http.Request) {
