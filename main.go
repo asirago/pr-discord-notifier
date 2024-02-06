@@ -105,7 +105,6 @@ func main() {
 	if err != nil {
 		app.log.Fatal().Err(err).Msg("Failed to create discord session")
 	}
-	defer dgo.Close()
 
 	dgo.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
@@ -117,19 +116,33 @@ func main() {
 	if err != nil {
 		app.log.Fatal().Err(err).Msg("Error opening websocket connection")
 	}
+	defer dgo.Close()
 
 	fmt.Println("Bot is now running. Press Ctrl+C to exit")
 
 	app.dgo = dgo
 
-	for _, v := range commands {
-		_, err := app.dgo.ApplicationCommandCreate(app.dgo.State.User.ID, app.cfg.GuildID, v)
+	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
+	for i, v := range commands {
+		cmd, err := app.dgo.ApplicationCommandCreate(app.dgo.State.User.ID, app.cfg.GuildID, v)
 		if err != nil {
 			app.log.Fatal().Err(err).Msg("Discord could not send command")
 		}
+		registeredCommands[i] = cmd
 	}
 
 	app.server()
+
+	fmt.Println("Removing commands...")
+
+	for _, v := range registeredCommands {
+		err := dgo.ApplicationCommandDelete(dgo.State.User.ID, app.cfg.GuildID, v.ID)
+		if err != nil {
+			app.log.Panic().Err(err).Msg("Cannot delete commands")
+		}
+	}
+
+	app.log.Info().Msg("Gracefully shutting down")
 }
 
 func (app *application) setupConfigFile(filename string) error {
@@ -151,7 +164,7 @@ func (app *application) setupConfigFile(filename string) error {
 	return nil
 }
 
-func (app *application) server() {
+func (app *application) server() error {
 
 	var localhost string
 	if app.cfg.Environment == "dev" {
@@ -166,12 +179,47 @@ func (app *application) server() {
 		WriteTimeout: 30 * time.Second,
 	}
 
+	shutdownError := make(chan error)
+
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		s := <-quit
+
+		app.log.Info().Str("signal", s.String())
+
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+
+		err := server.Shutdown(ctx)
+		if err != nil {
+			shutdownError <- err
+		}
+
+		fmt.Println()
+		app.log.Info().Msg("Closing server...")
+		time.Sleep(3 * time.Second)
+
+		shutdownError <- nil
+
+	}()
+
 	app.log.Info().
 		Int("port", app.cfg.Port).
 		Msg(fmt.Sprintf("Starting server on port %d", app.cfg.Port))
 
 	err := server.ListenAndServe()
-	if err != nil {
-		app.log.Fatal().Err(err).Msg("Failed to start server")
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
 	}
+
+	err = <-shutdownError
+	if err != nil {
+		return err
+	}
+
+	fmt.Println()
+	app.log.Info().Str("port", fmt.Sprintf("%d", app.cfg.Port)).Msg("stopped server")
+
+	return nil
 }
