@@ -126,6 +126,10 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:        "help",
+			Description: "Prints a usage manual for the application commands",
+		},
 	}
 
 	commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
@@ -194,6 +198,30 @@ func main() {
 				},
 			})
 		},
+		"help": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: `
+### Usage Manual
+
+` + "`/help`" + `** - Displays a usage manual for the available commands.**
+
+` + "`/repo`" + `** - Retrieves the link to the GitHub repository associated with this Discord server.**
+` + "`/set_repo` `[repo_link]`" + `** - Sets the link to the GitHub repository for this Discord server.**
+
+` + "`/project`" + `** - Retrieves the link to the project management tool **
+` + "`/set_project` `[project_link]`" + `** - Sets the link to the project management tool for this Discord server.**
+
+` + "`/source`" + `** - Retrieves the link to the GitHub repository containing the source code of this Discord bot.**
+
+` + "`/channel`" + `** - Retrieves the channel where pull request notifications will be sent.**
+` + "`/set_channel` `[channel_id]` or `[#channel]`" + `** - Sets the channel for pull request notifications.**
+
+					`,
+				},
+			})
+		},
 	}
 
 	dgo, err := discordgo.New("Bot " + app.cfg.Token)
@@ -206,6 +234,14 @@ func main() {
 			h(dgo, i)
 		}
 	})
+
+	dgo.Identify.Presence = discordgo.GatewayStatusUpdate{
+		Game: discordgo.Activity{
+			Name:  "Whatever",
+			State: "Type /help for usage",
+			Type:  4,
+		},
+	}
 
 	err = dgo.Open()
 	if err != nil {
