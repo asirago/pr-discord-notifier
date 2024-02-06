@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"regexp"
+	"syscall"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -26,6 +31,7 @@ type config struct {
 	GuildID     string `mapstructure:"guild"`
 	Environment string `mapstructure:"env"`
 	Repo        string `mapstructure:"repo"`
+	Project     string `mapstructure:"project"`
 }
 
 func main() {
@@ -40,6 +46,7 @@ func main() {
 	pflag.StringVar(&app.cfg.ChannelID, "channel", "", "Discord channel id")
 	pflag.StringVar(&app.cfg.GuildID, "guild", "", "Discord guild (server) id")
 	pflag.StringVar(&app.cfg.Repo, "repo", "", "Link to GitHub repo with the pull requests")
+	pflag.StringVar(&app.cfg.Project, "project", "", "Link to GitHub project")
 	pflag.StringVar(&app.cfg.Environment, "environment", "dev", "dev | prod")
 
 	configFileName := pflag.String("config", "", "config file name")
@@ -50,6 +57,8 @@ func main() {
 	viper.BindPFlag("token", pflag.Lookup("token"))
 	viper.BindPFlag("channel", pflag.Lookup("channel"))
 	viper.BindPFlag("guild", pflag.Lookup("guild"))
+	viper.BindPFlag("repo", pflag.Lookup("repo"))
+	viper.BindPFlag("project", pflag.Lookup("project"))
 	viper.BindPFlag("environment", pflag.Lookup("environment"))
 
 	if *configFileName != "" {
@@ -67,14 +76,52 @@ func main() {
 			Description: "Link to GitHub repository",
 		},
 		{
-			Name:        "echo",
-			Description: "Replies with your input",
+			Name:        "set_repo",
+			Description: "Set link to GitHub repository",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type: discordgo.ApplicationCommandOptionString,
-					Name: "input",
+					Name: "repo",
 
-					Description: "The input to echo back",
+					Description: "Link to GitHub repository",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "project",
+			Description: "Link to project management e.g GitHub project kanban | trello",
+		},
+		{
+			Name:        "set_project",
+			Description: "Set link to project manager",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type: discordgo.ApplicationCommandOptionString,
+					Name: "set_project",
+
+					Description: "Link to project",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "source",
+			Description: "Link to GitHub repository with source code",
+		},
+		{
+			Name:        "channel",
+			Description: "Pull request notifications will be sent to this channel",
+		},
+		{
+			Name:        "set_channel",
+			Description: "Set the channel id or #channel for PR notification",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type: discordgo.ApplicationCommandOptionString,
+					Name: "channel",
+
+					Description: "#channel or channel id",
 					Required:    true,
 				},
 			},
@@ -90,12 +137,60 @@ func main() {
 				},
 			})
 		},
-		"echo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			input := i.ApplicationCommandData().Options[0].StringValue()
+		"set_repo": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			repo := i.ApplicationCommandData().Options[0].StringValue()
+
+			app.cfg.Repo = repo
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
-					Content: input,
+					Content: fmt.Sprintf("Repo was set to %s", app.cfg.Repo),
+				},
+			})
+		},
+		"project": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: app.cfg.Project,
+				},
+			})
+		},
+		"set_project": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			project := i.ApplicationCommandData().Options[0].StringValue()
+			app.cfg.Project = project
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("Project was set to %s", app.cfg.Project),
+				},
+			})
+		},
+		"source": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "https://github.com/asirago/pr-discord-notifier",
+				},
+			})
+		},
+		"channel": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("<#%s>", app.cfg.ChannelID),
+				},
+			})
+		},
+		// TODO: Fix error handling when dealing with invalid inputs
+		"set_channel": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			channelID := i.ApplicationCommandData().Options[0].StringValue()
+			re := regexp.MustCompile(`(\d+)`)
+			app.cfg.ChannelID = re.FindString(channelID)
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("Channel was set to <#%s>", app.cfg.ChannelID),
 				},
 			})
 		},
@@ -198,7 +293,7 @@ func (app *application) server() error {
 
 		fmt.Println()
 		app.log.Info().Msg("Closing server...")
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		shutdownError <- nil
 
@@ -219,7 +314,7 @@ func (app *application) server() error {
 	}
 
 	fmt.Println()
-	app.log.Info().Str("port", fmt.Sprintf("%d", app.cfg.Port)).Msg("stopped server")
+	app.log.Info().Str("port", fmt.Sprintf("%d", app.cfg.Port)).Msg("Stopped server")
 
 	return nil
 }
