@@ -94,7 +94,15 @@ func (app *application) githubWebhookReceiver(w http.ResponseWriter, r *http.Req
 		}
 		return
 	case "closed":
-		fmt.Println("pull request was closed") // Implement soon
+		err = app.sendClosedPullRequestMessage(payload)
+		if err != nil {
+			app.log.Error().Err(err).Msg("could not send pull request message")
+			http.Error(
+				w,
+				"Error sending closed pull request message",
+				http.StatusInternalServerError,
+			)
+		}
 		return
 	default:
 		fmt.Println("any other pull request event")

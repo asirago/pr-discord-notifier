@@ -1,0 +1,21 @@
+[Unit]
+Description=pr-discord-notifier service
+
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+# Execute the API binary as the greenlight user, loading the environment variables from
+# /etc/environment and using the working directory /home/greenlight.
+Type=exec
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/pr-discord-notifier
+ExecStart=/home/ec2-user/pr-discord-notifier/pr-discord-notifier --config config --environment production
+Restart=on-failure
+RestartSec=5
+
+[Install]
+# Start the service automatically at boot time (the 'multi-user.target' describes a boot
+# state when the system will accept logins).
+WantedBy=multi-user.target

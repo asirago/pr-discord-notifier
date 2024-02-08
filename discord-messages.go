@@ -78,3 +78,30 @@ func (app *application) sendEditedPullRequestMessage(payload Payload) error {
 
 	return nil
 }
+
+func (app *application) sendClosedPullRequestMessage(payload Payload) error {
+
+	hexColor := "#8B5CF6"
+	color, err := strconv.ParseInt(hexColor[1:], 16, 64)
+
+	message := discordgo.MessageEmbed{
+		Color: int(color),
+		Description: addIssueURLToPullRequestBody(fmt.Sprintf(`
+		[%s](%s)`, payload.PullRequest.Title, payload.PullRequest.HTMLURL), payload.Repo.HTMLURL),
+		Author: &discordgo.MessageEmbedAuthor{
+			URL:     payload.PullRequest.User.HTMLURL,
+			IconURL: payload.PullRequest.User.AvatarURL,
+			Name:    fmt.Sprintf("%s has closed a pull request", payload.PullRequest.User.Login),
+		},
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: "https://i.ibb.co/1mQMPC7/pr-1.png",
+		},
+	}
+
+	_, err = app.dgo.ChannelMessageSendEmbed(app.cfg.ChannelID, &message)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
