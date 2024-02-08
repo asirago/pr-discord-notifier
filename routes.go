@@ -40,10 +40,10 @@ type Payload struct {
 		Body     string     `json:"body"`
 		ClosedAt *time.Time `json:"closed_at"`
 		MergedAt *time.Time `json:"merged_at"`
+		MergedBy struct {
+			Login string `json:"login"`
+		} `json:"merged_by"`
 	} `json:"pull_request"`
-	MergedBy struct {
-		Login string `json:"login"`
-	} `json:"merged_by"`
 	Changes struct {
 		Title struct {
 			From string `json:"from"`
