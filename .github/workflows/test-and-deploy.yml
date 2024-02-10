@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Build
-        run: GOOS=linux GOARCH=amd64 go build -o pr-discord-notifier -v ./...
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o pr-discord-notifier -v ./...
       - name: Test
         run: go test -v
       - name: Install SSH Key
