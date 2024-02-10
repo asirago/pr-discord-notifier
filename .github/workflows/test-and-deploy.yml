@@ -21,8 +21,6 @@ jobs:
         run: go build -o pr-discord-notifier -v ./...
       - name: Test
         run: go test -v
-      - name: Deploy files to host with rsync
-        run: rsync -avz ./pr-discord-notifier ${{ secrets.USER}}@${{ secrets.HOST }}:~/pr-discord-notifier
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
         with:
@@ -30,5 +28,7 @@ jobs:
           known_hosts: ${{ secrets.HOST }}
       - name: Adding Known Hosts
         run: ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+      - name: Deploy files to host with rsync
+        run: rsync -avz ./pr-discord-notifier ${{ secrets.USER}}@${{ secrets.HOST }}:~/pr-discord-notifier
       - name: Updating pr-discord-notifier service to run latest binary
         run: ssh -t ${{ secrets.USER}}@${{ secrets.HOST}} 'sudo systemctl enable pr-discord-notifier && sudo systemctl restart pr-discord-notifier'
