@@ -89,8 +89,8 @@ func (app *application) sendClosedPullRequestMessage(payload Payload) error {
 		Description: addIssueURLToPullRequestBody(fmt.Sprintf(`
 		[%s](%s)`, payload.PullRequest.Title, payload.PullRequest.HTMLURL), payload.Repo.HTMLURL),
 		Author: &discordgo.MessageEmbedAuthor{
-			URL:     payload.PullRequest.User.HTMLURL,
-			IconURL: payload.PullRequest.User.AvatarURL,
+			URL:     payload.PullRequest.MergedBy.HTMLURL,
+			IconURL: payload.PullRequest.MergedBy.AvatarURL,
 			Name: fmt.Sprintf(
 				"%s has closed a pull request",
 				payload.PullRequest.MergedBy.Login,

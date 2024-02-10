@@ -41,7 +41,9 @@ type Payload struct {
 		ClosedAt *time.Time `json:"closed_at"`
 		MergedAt *time.Time `json:"merged_at"`
 		MergedBy struct {
-			Login string `json:"login"`
+			Login     string `json:"login"`
+			AvatarURL string `json:"avatar_url"`
+			HTMLURL   string `json:"html_url"`
 		} `json:"merged_by"`
 	} `json:"pull_request"`
 	Changes struct {
