@@ -4,7 +4,7 @@
 
 ## Motivation
 
-While enrolled in the course [DD2480 Software Engineering Fundamentals](https://www.kth.se/student/kurser/kurs/DD2480?l=en) during my first year of my MSc in Computer Science, my project group and I decided to centrali allcommunications through Discord. Therefore, I built this bot to make it easier for us to stay up to date on pull requests.
+While enrolled in the course [DD2480 Software Engineering Fundamentals](https://www.kth.se/student/kurser/kurs/DD2480?l=en) during my first year of my MSc in Computer Science, my project group and I decided to centralize all communications through Discord. Therefore, I built this bot to make it easier for us to stay up to date on pull requests.
 
 ## Features
 
